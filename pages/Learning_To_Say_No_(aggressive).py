@@ -1,7 +1,6 @@
-from openai import OpenAI
 import streamlit as st
+from openai import OpenAI
 import base64
-import re
 from Home import API_KEY
 
 def my_key(key):
