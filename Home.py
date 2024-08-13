@@ -1,15 +1,16 @@
 import streamlit as st
 import re
+import pycountry
 
 # Set page configuration
 st.set_page_config(
     page_title="Chat with Professional",
-    page_icon="siira.jpg",  # Replace with your page icon image path
-    layout="wide"  # Adjust layout as per your design
+    page_icon="siira.jpg",
+    layout="wide"
 )
 
 # Display the image
-st.image("siira.jpg", width=200)  # Replace with your image path and desired width
+st.image("siira.jpg", width=200)
 
 # Main title
 st.title("Chat with Professional")
@@ -30,29 +31,43 @@ if "user_data" not in st.session_state:
     }
 
 def validate_input(user_data):
-    # Validation patterns
-    patterns = {
-        "name": r"^[A-Za-z ]+$",  # Allows only letters and spaces
-        "nationality": r"^[A-Za-z ]+$",  # Same as name
-        "age": r"^\d{1,3}$"  # Allows up to three digits
-    }
     errors = {}
-    # Validate each field
-    for key, pattern in patterns.items():
-        if not re.match(pattern, user_data[key]):
-            errors[key] = f"Invalid input for {key}"
+    
+    # Validate name
+    if not re.match(r"^[A-Za-z ]+$", user_data["name"]):
+        errors["name"] = "Name should only contain letters and spaces"
+    
+    # Validate age
+    if not isinstance(user_data["age"], int) or user_data["age"] < 18 or user_data["age"] > 100:
+        errors["age"] = "Age should be a number between 18 and 100"
+    
     return errors
+
+# Get list of countries
+countries = sorted([country.name for country in pycountry.countries])
+
+# Define updated seniority levels
+seniority_levels = [
+    "Entry-Level/Junior",
+    "Mid-Level",
+    "Senior-Level",
+    "Lead/Principal",
+    "Managerial",
+    "Director",
+    "Vice President (VP)",
+    "C-Level Executive"
+]
 
 # Form for input
 with st.form("user_info_form"):
     user_data = {
         "name": st.text_input("Name", value=st.session_state["user_data"]["name"]),
         "gender": st.selectbox("Gender", ["Male", "Female"], index=0),
-        "age": st.text_input("Age", value=st.session_state["user_data"]["age"]),
-        "seniority": st.selectbox("Level of Seniority", ["Junior", "Mid-level", "Senior", "Director" , "Manager" , "Senior Manager"], index=0),
-        "nationality": st.text_input("Nationality", value=st.session_state["user_data"]["nationality"]),
-        "work_environment": st.radio("Do you work alone or in a team?", ["Alone", "In a team"]),
-        "department": st.text_input("Department", value=st.session_state["user_data"]["department"])
+        "age": st.number_input("Age", min_value=18, max_value=100, value=int(st.session_state["user_data"]["age"]) if st.session_state["user_data"]["age"] else 18),
+        "seniority": st.selectbox("Level of Seniority", seniority_levels, index=seniority_levels.index(st.session_state["user_data"]["seniority"]) if st.session_state["user_data"]["seniority"] in seniority_levels else 0),
+        "nationality": st.selectbox("Nationality", countries, index=countries.index(st.session_state["user_data"]["nationality"]) if st.session_state["user_data"]["nationality"] in countries else 0),
+        "work_environment": st.radio("Work Environment", ["Individual Contributor", "Team Member", "Team Lead", "Remote Worker", "Hybrid"], index=0),
+        "department": st.selectbox("Department", ["Sales", "Marketing", "Engineering", "Product", "Design", "Finance", "Human Resources", "Customer Support", "Operations"], index=0)
     }
     submitted = st.form_submit_button("Submit")
     if submitted:
@@ -68,13 +83,9 @@ with st.form("user_info_form"):
 # Restart button
 if "form_submitted" in st.session_state and st.session_state["form_submitted"]:
     if st.button("Restart"):
-        # Clear the session state
         for key in st.session_state["user_data"]:
             st.session_state["user_data"][key] = ""
         st.session_state["form_submitted"] = False
         st.rerun()
 
-
-
-
-API_KEY = "c2stcHJvai0wbnV3UmZveTZUdnBwUUpmUFc0dlQzQmxia0ZKUHl4OXB4cTFtTE9DRVJBZk5idkg=" 
+API_KEY = "c2stcHJvai0wbnV3UmZveTZUdnBwUUpmUFc0dlQzQmxia0ZKUHl4OXB4cTFtTE9DRVJBZk5idkg="
