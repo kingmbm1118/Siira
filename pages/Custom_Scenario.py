@@ -8,7 +8,7 @@ def my_key(key):
 
 client = OpenAI(api_key=my_key(API_KEY))
 
-def generate_sirabot_message(prompt, messages):
+def generate_siirabot_message(prompt, messages):
     full_messages = [{"role": "system", "content": prompt}] + messages
     response = client.chat.completions.create(
         model="gpt-4-turbo",
@@ -28,7 +28,7 @@ def setup_scenario():
     if 'setup_complete' not in st.session_state:
         st.session_state.setup_complete = False
 
-    setup_prompt = """You are SiraBot, an assistant tasked with setting up a custom role-play scenario. Ask the user questions to gather the following information, providing examples for each:
+    setup_prompt = """You are SiiraBot, an assistant tasked with setting up a custom role-play scenario. Ask the user questions to gather the following information, providing examples for each:
 
     1. The roles involved in the scenario
     2. The main conflict or issue to be addressed
@@ -43,22 +43,22 @@ def setup_scenario():
             st.write(message["content"])
 
     if not st.session_state.setup_messages:
-        with st.spinner("SiraBot is thinking..."):
-            sirabot_response = generate_sirabot_message(setup_prompt, [])
-        st.session_state.setup_messages.append({"role": "assistant", "content": sirabot_response})
+        with st.spinner("SiiraBot is thinking..."):
+            siirabot_response = generate_siirabot_message(setup_prompt, [])
+        st.session_state.setup_messages.append({"role": "assistant", "content": siirabot_response})
         st.rerun()
 
     if st.session_state.setup_messages[-1]["role"] == "assistant":
         user_input = st.chat_input("Your response:", key="setup_input")
         if user_input:
             st.session_state.setup_messages.append({"role": "user", "content": user_input})
-            with st.spinner("SiraBot is thinking..."):
-                sirabot_response = generate_sirabot_message(setup_prompt, st.session_state.setup_messages)
-            st.session_state.setup_messages.append({"role": "assistant", "content": sirabot_response})
+            with st.spinner("siiraBot is thinking..."):
+                siirabot_response = generate_siirabot_message(setup_prompt, st.session_state.setup_messages)
+            st.session_state.setup_messages.append({"role": "assistant", "content": siirabot_response})
             
-            if "can now start the role-play" in sirabot_response.lower():
+            if "can now start the role-play" in siirabot_response.lower():
                 st.session_state.setup_complete = True
-                st.session_state.scenario_data = parse_scenario_summary(sirabot_response)
+                st.session_state.scenario_data = parse_scenario_summary(siirabot_response)
             
             st.rerun()
 
@@ -85,11 +85,11 @@ def parse_scenario_summary(summary):
         elif current_key and line.strip():
             scenario_data[current_key] += ' ' + line.strip()
     
-    # Ensure SiraBot's role is included in the scenario data
-    if 'SiraBot Role' not in scenario_data:
+    # Ensure SiiraBot's role is included in the scenario data
+    if 'siiraBot Role' not in scenario_data:
         for line in lines:
-            if "sirabot should play" in line.lower():
-                scenario_data['SiraBot Role'] = line.split("play")[-1].strip()
+            if "siirabot should play" in line.lower():
+                scenario_data['siiraBot Role'] = line.split("play")[-1].strip()
                 break
     
     return scenario_data
@@ -113,19 +113,19 @@ def role_play():
 
     if not st.session_state.role_play_messages:
         # Initialize the role-play with the scenario details
-        scenario_prompt = f"""You are SiraBot conducting a role-play scenario with the following details:
+        scenario_prompt = f"""You are siiraBot conducting a role-play scenario with the following details:
         Roles: {st.session_state.scenario_data.get('Roles', '')}
         Main Conflict: {st.session_state.scenario_data.get('Main Conflict', '')}
         Cultural/Environmental Factors: {st.session_state.scenario_data.get('Cultural/Environmental Factors', '')}
         Learning Outcome: {st.session_state.scenario_data.get('Learning Outcome', '')}
         Stopping Criteria: {st.session_state.scenario_data.get('Stopping Criteria', '')}
-        SiraBot Role: {st.session_state.scenario_data.get('SiraBot Role', '')}
+        siiraBot Role: {st.session_state.scenario_data.get('siiraBot Role', '')}
 
-        You will play the role of {st.session_state.scenario_data.get('SiraBot Role', '')}. Begin the role-play by setting the scene and starting the interaction."""
+        You will play the role of {st.session_state.scenario_data.get('siiraBot Role', '')}. Begin the role-play by setting the scene and starting the interaction."""
 
-        with st.spinner("SiraBot is starting the role-play..."):
-            sirabot_response = generate_sirabot_message(scenario_prompt, [])
-        st.session_state.role_play_messages.append({"role": "assistant", "content": sirabot_response})
+        with st.spinner("siiraBot is starting the role-play..."):
+            siirabot_response = generate_siirabot_message(scenario_prompt, [])
+        st.session_state.role_play_messages.append({"role": "assistant", "content": siirabot_response})
         st.rerun()
 
     # Clear previous messages
@@ -148,13 +148,13 @@ def role_play():
                 st.success("Role-play complete!")
                 provide_feedback()
             else:
-                with st.spinner("SiraBot is responding..."):
-                    sirabot_response = generate_sirabot_message(f"Continue the role-play based on the user's input. Remember, you are playing the role of {st.session_state.scenario_data.get('SiraBot Role', '')}.", st.session_state.role_play_messages)
-                st.session_state.role_play_messages.append({"role": "assistant", "content": sirabot_response})
+                with st.spinner("siiraBot is responding..."):
+                    siirabot_response = generate_siirabot_message(f"Continue the role-play based on the user's input. Remember, you are playing the role of {st.session_state.scenario_data.get('siiraBot Role', '')}.", st.session_state.role_play_messages)
+                st.session_state.role_play_messages.append({"role": "assistant", "content": siirabot_response})
                 st.rerun()
 
 def provide_feedback():
-    feedback_prompt = f"""You are SiraBot providing feedback on a role-play scenario. The scenario details are:
+    feedback_prompt = f"""You are siiraBot providing feedback on a role-play scenario. The scenario details are:
     Roles: {st.session_state.scenario_data.get('Roles', '')}
     Main Conflict: {st.session_state.scenario_data.get('Main Conflict', '')}
     Learning Outcome: {st.session_state.scenario_data.get('Learning Outcome', '')}
@@ -163,10 +163,10 @@ def provide_feedback():
 
     Provide a rating out of 5 stars, formatted as [RATING: X], at the end of your feedback."""
 
-    with st.spinner("SiraBot is generating feedback..."):
-        feedback = generate_sirabot_message(feedback_prompt, st.session_state.role_play_messages)
+    with st.spinner("siiraBot is generating feedback..."):
+        feedback = generate_siirabot_message(feedback_prompt, st.session_state.role_play_messages)
     
-    st.subheader("SiraBot's Feedback")
+    st.subheader("siiraBot's Feedback")
     feedback_without_rating = feedback.split('[RATING:')[0].strip()
     st.write(feedback_without_rating)
 
