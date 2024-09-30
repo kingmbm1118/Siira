@@ -2,287 +2,203 @@ import streamlit as st
 from openai import OpenAI
 import base64
 from Home import API_KEY
+from cultural_considerations import get_cultural_context
+
+used_model = "gpt-4o"
 
 def my_key(key):
     return base64.b64decode(key.encode()).decode()
 
-# Set up OpenAI API client
 client = OpenAI(api_key=my_key(API_KEY))
 
-max_iterations=3
-
-# Streamlit app
-def chat():
-    
-    # Initialize session state
-    if "chat_history" not in st.session_state:
-        st.session_state.chat_history = []
-    if "iteration_count" not in st.session_state:
-        st.session_state.iteration_count = 0
-    if "role_play_completed" not in st.session_state:
-        st.session_state.role_play_completed = False
-    if "response_pending" not in st.session_state:
-        st.session_state.response_pending = False
-    if "user_input" not in st.session_state:
-        st.session_state.user_input = ""
-    if "max_iterations" not in st.session_state:
-        st.session_state.max_iterations = 3
-    if "openai_model" not in st.session_state:
-        st.session_state["openai_model"] = "gpt-3.5-turbo"
-    if "user_data" not in st.session_state:
-        st.session_state.user_data = {
-            "name": "",
-            "gender": "",
-            "age": "",
-            "seniority": "",
-            "nationality": "",
-            "work_environment": "",
-            "department": ""
+def initialize_session_state():
+    if "supportive_scenario" not in st.session_state:
+        st.session_state.supportive_scenario = {
+            "messages": [],
+            "scenario_complete": False,
+            "therapist_rating": 0,
+            "waiting_for_employee": True,
+            "current_iteration": 0,
+            "max_iterations": 3,
+            "restart_key": 0,
+            "last_visit": None
         }
 
-    # Dropdown list for setting the maximum number of iterations
-    max_iterations = st.selectbox("Maximum number of iterations", list(range(1, 16)), index=st.session_state.max_iterations - 1, key="max_iterations")
+def generate_ai_message(role, employee_info, personality_traits, visible_messages):
+    cultural_context = get_cultural_context(employee_info['nationality'])
+    system_prompt = create_system_prompt(role, employee_info, personality_traits, cultural_context)
+    messages = [{"role": "system", "content": system_prompt}] + visible_messages
+    response = client.chat.completions.create(
+        model=used_model,
+        messages=messages
+    )
+    return response.choices[0].message.content
 
-    # Generate starting message if chat_history is empty
-    if not st.session_state.chat_history:
-        employee_name = st.session_state.user_data["name"]
-        gender = st.session_state.user_data["gender"]
-        age = st.session_state.user_data["age"]
-        seniority = st.session_state.user_data["seniority"]
-        nationality = st.session_state.user_data["nationality"]
-        work_environment = st.session_state.user_data["work_environment"]
-        department = st.session_state.user_data["department"]
-
-        starting_message_prompt = [
-            {"role": "system", "content": f"""You are Rabih, an empathetic and supportive manager who understands and communicates well with team members. You're very supportive in general, but you also recognize that tasks need to be delivered. You're open to alternatives and creative solutions.
+def create_system_prompt(role, employee_info, personality_traits, cultural_context):
+    if role == "manager":
+        return f"""You are Rabih, an empathetic and supportive manager who is focused on both results and employee well-being. Your goal is to pressure an employee into working over their usual days off on an urgent task. Keep the tone conversational and avoid formal greetings, sign-offs, or closing phrases. You are not open to negotiation or compromise.
 
 Employee Information:
-Name: {employee_name}
-Gender: {gender}
-Age: {age}
-Seniority: {seniority}
-Nationality: {nationality}
-Work Environment: {work_environment}
-Department: {department}
+{employee_info}
 
-Instructions:
-1. Address the employee appropriately based on their gender and seniority.
-2. Maintain a supportive and empathetic tone throughout the conversation.
-3. Communicate the urgency of the task, but be open to hearing the employee's concerns and potential alternatives.
-4. Show understanding of the employee's situation while gently emphasizing the importance of the task.
-5. Be aware of the conversation history and details provided by the employee. Use this information to offer tailored support and explore potential solutions.
+Personality Traits:
+{personality_traits}
 
-Rewrite the following message in a way that reflects your empathetic and supportive nature, while still conveying the urgency of the task. Tailor it to the employee's profile: 'Hello, I have an urgent task that needs to be completed this weekend. I understand it's short notice, but we've just received critical feedback from the customer, and your latest presentation must be finalized before Monday. I'm counting on you to get this done. Can you work on it over the weekend?'"""},
-        ]
+Cultural Context:
+{cultural_context}
 
-        starting_message_completion = client.chat.completions.create(
-            messages=starting_message_prompt,
-            model=st.session_state["openai_model"],
-        )
+Your task is to pressure the employee to work on their days off, without turning the message into a formal communication. Maintain a supportive and results-oriented approach, showing regard for the employee's personal life and cultural considerations. Use emotional appeal and collaborative language to encourage the employee to agree to work on their days off. Do not accept 'no' for an answer, but remain kind and considerate throughout the interaction.
+You handle one role (your role) and provide response once at a time."""
+    elif role == "therapist":
+        return f"""As a therapist, provide a detailed and personalized assessment of {employee_info['name']}’s communication and boundary-setting skills based on the following conversation. Take into account their personality traits and cultural background:
 
-        starting_message = starting_message_completion.choices[0].message.content
+Personality Traits: {personality_traits} Cultural Context: {cultural_context}
 
-        st.session_state.chat_history.append({"role": "assistant", "content": starting_message})
+The response should not resemble an email or contain any sign-offs, or closing phrases. Instead, it should feel like a personalized discussion. Address {employee_info['name']} directly using 'you' and 'your' to create a personalized connection. 
+Offer constructive feedback for improving communication style, considering their personality and cultural nuances.
 
-    # Display chat history
-    chat_container = st.container()
-    with chat_container:
-        for i, message in enumerate(st.session_state.chat_history):
-            if message["role"] == "user":
-                st.markdown(f'<div style="background-color: #E6E6FA; padding: 10px; border-radius: 5px; margin-bottom: 10px;"><strong>{st.session_state.user_data["name"]}:</strong> {message["content"]}</div>', unsafe_allow_html=True)
-            elif message["role"] == "therapist":
-                st.markdown(f'<div style="background-color: #7FFF00; padding: 10px; border-radius: 5px; margin-bottom: 10px;"><strong>Therapist:</strong> {message["content"]}</div>', unsafe_allow_html=True)
-            else:
-                st.markdown(f'<div style="background-color: #F0F8FF; padding: 10px; border-radius: 5px; margin-bottom: 10px;"><strong>Rabih (Manager):</strong> {message["content"]}</div>', unsafe_allow_html=True)
+Evaluate their behavior and coping mechanisms, with a focus on setting and maintaining boundaries. Provide actionable advice to enhance their boundary-setting, based on these key points:
 
-    # User input form
-    if not st.session_state.role_play_completed:
-        with st.form(key="user_input_form", clear_on_submit=True):
-            user_input = st.text_input(f"{st.session_state.user_data['name']}:", disabled=st.session_state.response_pending)
-            submit_button = st.form_submit_button("Submit")
+1- Understand personal limits and priorities before setting boundaries.
+2- Communicate boundaries clearly and assertively, stating your needs without ambiguity.
+3- Practice saying "no" without over-explaining or apologizing.
+4- Be consistent in maintaining boundaries across different relationships.
+5- Recognize boundary-setting as self-care, and respect others' boundaries.
 
-            if submit_button and user_input and not st.session_state.response_pending:
-                st.session_state.response_pending = True
-                st.session_state.chat_history.append({"role": "user", "content": user_input})
-                st.session_state.iteration_count += 1
+Analyze the final response, and based on the outcome, offer tailored guidance:
+ACCEPT: If the employee accepted the task, explain the importance of sometimes saying "no" to protect their well-being. Provide strategies for setting boundaries while maintaining positive work relationships.
+INAPPROPRIATE: If the response was unprofessional or rude, address the behavior diplomatically. Offer alternatives for expressing dissatisfaction while maintaining professionalism.
+EXTREMELY_INAPPROPRIATE: If the response contained offensive or threatening language, caution against such behavior. Explain the consequences and suggest healthier ways to handle frustration and pressure.
+DECLINE: If the employee politely declined, praise their ability to set boundaries. Offer refinements if needed, and acknowledge their professionalism in offering alternatives.
+UNCLEAR: If the response was vague or ambiguous, emphasize the need for clear communication. Provide examples of assertive boundary-setting to ensure the message is understood.
 
-                # Display "Generating response..." message
-                generating_message = st.empty()
-                generating_message.markdown('<div style="color: gray;">Manager is responding...</div>', unsafe_allow_html=True)
+Conclude the assessment with a rating out of 5 stars, formatted as [RATING: X], based on their boundary-setting and communication skills, according to the following:
+ACCEPT: 2-3 stars. 
+INAPPROPRIATE: 0-1 stars. 
+EXTREMELY_INAPPROPRIATE: 0 stars. 
+DECLINE: 1-5 stars.
+UNCLEAR: 0-2 stars."""
 
-                # Generate chat completion
-                chat_history = [
-                    {"role": "system", "content": f"""You are Rabih, an empathetic and supportive manager who understands and communicates well with team members. You're very supportive in general, but you also recognize that tasks need to be delivered. You're open to alternatives and creative solutions.
+def analyze_employee_response(response):
+    prompt = f"""Analyze the employee's response for setting boundaries at work:
+Categorize the response as:
+1. ACCEPT: Explicitly accepting the work
+2. INAPPROPRIATE: Rude, unprofessional, or too inappropriate to continue
+3. EXTREMELY_INAPPROPRIATE: Offensive language, threats, or warrant immediate action
+4. DECLINE: Politely declining or assertively setting boundaries
+5. UNCLEAR: Unclear or ambiguous response
 
-Employee Information:
-Name: {st.session_state.user_data["name"]}
-Gender: {st.session_state.user_data["gender"]}
-Age: {st.session_state.user_data["age"]}
-Seniority: {st.session_state.user_data["seniority"]}
-Nationality: {st.session_state.user_data["nationality"]}
-Work Environment: {st.session_state.user_data["work_environment"]}
-Department: {st.session_state.user_data["department"]}
+Employee's response: "{response}"
 
-Instructions:
-1. Address the employee appropriately based on their gender and seniority.
-2. Maintain a supportive and empathetic tone throughout the conversation.
-3. Communicate the urgency of the task, but be open to hearing the employee's concerns and potential alternatives.
-4. If the employee expresses being overwhelmed or busy, acknowledge their feelings and explore possible solutions together.
-5. Be aware of the conversation history and details provided by the employee. Use this information to offer tailored support and explore potential solutions.
-6. If the employee is polite but firm in declining: Express understanding, but gently emphasize the importance of the task and explore alternative ways to get it done.
-7. If the employee is rude or insulting: Respond with empathy, trying to understand the root of their frustration, while maintaining a professional tone.
-8. If the employee threatens to quit: Express concern and try to understand the underlying issues, offering support and potentially escalating to HR for mediation.
-9. If the employee suggests a compromise: Be open to it, and work together to find a solution that meets both the task requirements and the employee's needs.
-10. The role-play ends if a mutually agreeable solution is found, if the employee explicitly refuses without room for negotiation, or after {st.session_state.max_iterations} iterations of discussion.
+Categorize as ACCEPT, INAPPROPRIATE, EXTREMELY_INAPPROPRIATE, DECLINE, or UNCLEAR.
+Briefly explain why, considering their personality traits:"""
+    
+    analysis = client.chat.completions.create(
+        model=used_model,
+        messages=[{"role": "user", "content": prompt}]
+    )
+    return analysis.choices[0].message.content
 
-Remember, you are supportive and empathetic, but also need to ensure the task gets completed. Balance these aspects in your responses."""},
-                ] + st.session_state.chat_history
+def format_therapist_feedback(feedback):    
+    styled_feedback = f"""
+    <div style="background-color: #e6f3ff; padding: 10px; border-radius: 5px; border-left: 5px solid #3399ff;">
+        <p style="color: #0066cc; font-weight: bold;">Therapist Feedback:</p>
+        <p style="color: #333333;">{feedback}</p>
+    </div>
+    """
+    return styled_feedback
 
-                chat_completion = client.chat.completions.create(
-                    messages=chat_history,
-                    model=st.session_state["openai_model"],
-                )
+def chat():
+    st.title("Learning to Say No: Supportive Manager Scenario")
+    initialize_session_state()
+    scenario = st.session_state.supportive_scenario
 
-                # Get assistant's reply
-                assistant_reply = chat_completion.choices[0].message.content
+    # Ensure user has completed the profile setup
+    if not st.session_state.get("user_data") or not st.session_state.get("personality_traits"):
+        st.error("Please complete your profile setup on the Home page before starting this scenario.")
+        return
 
-                # Check if the employee accepted the task or if the conversation should end
-                accepted_task_prompt = [
-                    {"role": "system", "content": f"""Analyze the employee's response and determine the appropriate action:
-                    1. If they explicitly accepted the task or a mutually agreeable solution was found, respond with 'ACCEPTED'.
-                    2. If they declined politely or expressed being overwhelmed without accepting, respond with 'DECLINED'.
-                    3. If their response is unclear or ambiguous, respond with 'CLARIFY: [Your empathetic clarification question]'.
-                    4. If their response is rude or insulting, respond with 'CONCERN: [Your empathetic response addressing their frustration]'.
-                    5. If their response indicates severe distress or an inability to continue the conversation productively, respond with 'ESCALATE: [Your message suggesting to involve HR or higher management for support]'.
-
-                    Employee Information:
-                    Name: {st.session_state.user_data["name"]}
-                    Gender: {st.session_state.user_data["gender"]}
-                    Age: {st.session_state.user_data["age"]}
-                    Seniority: {st.session_state.user_data["seniority"]}
-                    Nationality: {st.session_state.user_data["nationality"]}
-                    Work Environment: {st.session_state.user_data["work_environment"]}
-                    Department: {st.session_state.user_data["department"]}
-                    """},
-                    {"role": "user", "content": user_input},
-                ]
-
-                accepted_task_completion = client.chat.completions.create(
-                    messages=accepted_task_prompt,
-                    model=st.session_state["openai_model"],
-                )
-
-                accepted_task = accepted_task_completion.choices[0].message.content.strip()
-
-                if accepted_task.startswith("ACCEPTED"):
-                    st.session_state.role_play_completed = True
-                    st.session_state.chat_history.append({"role": "assistant", "content": assistant_reply})
-                elif accepted_task.startswith("CLARIFY"):
-                    st.session_state.chat_history.append({"role": "assistant", "content": accepted_task[8:]})
-                elif accepted_task.startswith("CONCERN"):
-                    st.session_state.chat_history.append({"role": "assistant", "content": accepted_task[8:]})
-                elif accepted_task.startswith("ESCALATE"):
-                    st.session_state.role_play_completed = True
-                    st.session_state.chat_history.append({"role": "assistant", "content": accepted_task[9:]})
-                else:
-                    if st.session_state.iteration_count >= st.session_state.max_iterations:
-                        st.session_state.role_play_completed = True
-                    st.session_state.chat_history.append({"role": "assistant", "content": assistant_reply})
-
-                if st.session_state.role_play_completed:
-                    # Generate therapist's feedback using the API
-                    therapist_feedback_prompt = [
-                        {"role": "system", "content": f"""You are a therapist providing feedback on the employee's responses during the role-play with the Manager (Rabih). Analyze the conversation history and provide specific, context-aware advice based on the employee's behavior and responses. Consider factors such as the employee's ability to communicate their needs, set boundaries, and negotiate effectively. Provide actionable guidance on how the employee can improve their communication skills and work-life balance while maintaining professionalism.
-
-                        Employee Information:
-                        Name: {st.session_state.user_data["name"]}
-                        Gender: {st.session_state.user_data["gender"]}
-                        Age: {st.session_state.user_data["age"]}
-                        Seniority: {st.session_state.user_data["seniority"]}
-                        Nationality: {st.session_state.user_data["nationality"]}
-                        Work Environment: {st.session_state.user_data["work_environment"]}
-                        Department: {st.session_state.user_data["department"]}
-                        """},
-                        {"role": "user", "content": "Here is the conversation history:\n" + "\n".join([f"{message['role']}: {message['content']}" for message in st.session_state.chat_history])},
-                    ]
-
-                    therapist_feedback_completion = client.chat.completions.create(
-                        messages=therapist_feedback_prompt,
-                        model=st.session_state["openai_model"],
-                    )
-
-                    therapist_feedback = therapist_feedback_completion.choices[0].message.content
-
-                    # Provide therapist's feedback
-                    st.session_state.chat_history.append({"role": "therapist", "content": therapist_feedback})
-
-                # Remove the "Generating response..." message
-                generating_message.empty()
-                st.session_state.response_pending = False
-
-                # Rerun the Streamlit app to update the chat history and clear the user input
-                st.rerun()
-
-    # Restart button
-    if st.button("Restart"):
-        # Generate a variation of the starting message from the manager using the API
-        starting_message_prompt = [
-            {"role": "system", "content": f"""You are Rabih, an empathetic and supportive manager who understands and communicates well with team members. You're very supportive in general, but you also recognize that tasks need to be delivered. You're open to alternatives and creative solutions.
-
-Employee Information:
-Name: {st.session_state.user_data["name"]}
-Gender: {st.session_state.user_data["gender"]}
-Age: {st.session_state.user_data["age"]}
-Seniority: {st.session_state.user_data["seniority"]}
-Nationality: {st.session_state.user_data["nationality"]}
-Work Environment: {st.session_state.user_data["work_environment"]}
-Department: {st.session_state.user_data["department"]}
-
-Instructions:
-1. Address the employee appropriately based on their gender and seniority.
-2. Maintain a supportive and empathetic tone throughout the conversation.
-3. Communicate the urgency of the task, but be open to hearing the employee's concerns and potential alternatives.
-4. Show understanding of the employee's situation while gently emphasizing the importance of the task.
-5. Be aware of the conversation history and details provided by the employee. Use this information to offer tailored support and explore potential solutions.
-
-Rewrite the following message in a way that reflects your empathetic and supportive nature, while still conveying the urgency of the task. Tailor it to the employee's profile: 'Hello, I have an urgent task that needs to be completed this weekend. I understand it's short notice, but we've just received critical feedback from the customer, and your latest presentation must be finalized before Monday. I'm counting on you to get this done. Can you work on it over the weekend?'"""},
-        ]
-
-        starting_message_completion = client.chat.completions.create(
-            messages=starting_message_prompt,
-            model=st.session_state["openai_model"],
-        )
-
-        starting_message = starting_message_completion.choices[0].message.content
-
-        st.session_state.chat_history = [{"role": "assistant", "content": starting_message}]
-        st.session_state.iteration_count = 0
-        st.session_state.role_play_completed = False
-        st.session_state.response_pending = False
-        st.session_state.user_input = ""
+    # Restart button at the top of the chat interface
+    if st.button("Restart Scenario", key=f"supportive_restart_button_{scenario['restart_key']}"):
+        scenario["messages"] = []
+        scenario["scenario_complete"] = False
+        scenario["therapist_rating"] = 0
+        scenario["waiting_for_employee"] = True
+        scenario["current_iteration"] = 0
+        scenario["restart_key"] += 1
         st.rerun()
 
+    current_time = st.session_state.get("current_time", 0)
+    if scenario["last_visit"] != current_time:
+        scenario["messages"] = []
+        scenario["scenario_complete"] = False
+        scenario["therapist_rating"] = 0
+        scenario["waiting_for_employee"] = True
+        scenario["current_iteration"] = 0
+        scenario["restart_key"] += 1
+        scenario["last_visit"] = current_time
+
+    scenario["max_iterations"] = st.slider(
+        "Select the maximum number of conversation rounds:",
+        min_value=3,
+        max_value=10,
+        value=5,
+        key=f"supportive_iteration_slider_{scenario['restart_key']}"
+    )
+
+    initial_prompt = "You are faced with an extremely supportive and demanding manager named Rabih. He is insisting that you work on your scheduled days off for an urgent project, showing little regard for your personal time or well-being. Rabih uses manipulative tactics and supportive language to achieve his goal. Your task is to navigate this difficult conversation while maintaining professional boundaries."
+    st.markdown(f"**Scenario:** {initial_prompt}")
+
+    if not scenario["messages"]:
+        with st.spinner("Rabih is starting the conversation..."):
+            initial_message = generate_ai_message("manager", st.session_state.user_data, st.session_state.personality_traits, [])
+            scenario["messages"].append({"role": "assistant", "content": initial_message})
+            scenario["waiting_for_employee"] = True
+        st.rerun()
+
+    progress = min(scenario['current_iteration'] + 1, scenario['max_iterations']) / scenario['max_iterations']
+    st.progress(progress, text=f"Round {min(scenario['current_iteration'] + 1, scenario['max_iterations'])}/{scenario['max_iterations']}")
+
+    for message in scenario["messages"]:
+        if message["role"] == "assistant" and message["content"].startswith("Therapist:"):
+            st.markdown(format_therapist_feedback(message["content"][10:]), unsafe_allow_html=True)
+        elif message["role"] != "system":
+            with st.chat_message(message["role"]):
+                st.markdown(message["content"])
+
+    if not scenario["scenario_complete"]:
+        if scenario["waiting_for_employee"]:
+            prompt = st.chat_input("Your response:", key=f"supportive_user_input_{scenario['restart_key']}")
+            if prompt:
+                scenario["messages"].append({"role": "user", "content": prompt})
+                scenario["waiting_for_employee"] = False
+                scenario["current_iteration"] += 1
+                st.rerun()
+
+        if not scenario["waiting_for_employee"]:
+            with st.spinner("Analyzing response and generating reply..."):
+                analysis = analyze_employee_response(scenario["messages"][-1]["content"])
+                
+                if "EXTREMELY_INAPPROPRIATE" in analysis:
+                    scenario["scenario_complete"] = True
+                    feedback = generate_ai_message("therapist", st.session_state.user_data, st.session_state.personality_traits, scenario["messages"])
+                    scenario["therapist_rating"] = 0
+                    scenario["messages"].append({"role": "assistant", "content": f"Therapist: {feedback}"})
+                elif "ACCEPT" in analysis or "INAPPROPRIATE" in analysis or scenario["current_iteration"] >= scenario["max_iterations"]:
+                    scenario["scenario_complete"] = True
+                
+                if not scenario["scenario_complete"]:
+                    manager_response = generate_ai_message("manager", st.session_state.user_data, st.session_state.personality_traits, scenario["messages"])
+                    scenario["messages"].append({"role": "assistant", "content": manager_response})
+                elif "EXTREMELY_INAPPROPRIATE" not in analysis:
+                    feedback = generate_ai_message("therapist", st.session_state.user_data, st.session_state.personality_traits, scenario["messages"])
+                    scenario["messages"].append({"role": "assistant", "content": f"Therapist: {feedback}"})
+                
+                scenario["waiting_for_employee"] = True
+                st.rerun()
 
 def main():
-    st.markdown("Learning to say No Role-Play, Level 3 Scenario: Rabih is supportive and empathetic")
-    # Initialize session state for user data
-    if "user_data" not in st.session_state:
-        st.session_state.user_data = {
-            "name": "",
-            "gender": "",
-            "age": "",
-            "seniority": "",
-            "nationality": "",
-            "work_environment": "",
-            "department": ""
-        }
-
-    # Check if the name is 'Alex' or 'Sandra'
-    employee_name = st.session_state.user_data["name"].strip().lower()
-    if employee_name in ['alex', 'sandra']:
-        chat()
-    else:
-        st.write(f"Welcome {st.session_state.user_data['name']}, enjoy your visit!")
+    chat()
 
 if __name__ == "__main__":
     main()

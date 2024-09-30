@@ -2,276 +2,208 @@ import streamlit as st
 from openai import OpenAI
 import base64
 from Home import API_KEY
+from cultural_considerations import get_cultural_context
+
+used_model = "gpt-4o"
 
 def my_key(key):
     return base64.b64decode(key.encode()).decode()
 
-# Set up OpenAI API client
 client = OpenAI(api_key=my_key(API_KEY))
 
-max_iterations=3
-
-# Streamlit app
-def chat():
-    
-    # Initialize session state
-    if "chat_history" not in st.session_state:
-        st.session_state.chat_history = []
-    if "iteration_count" not in st.session_state:
-        st.session_state.iteration_count = 0
-    if "role_play_completed" not in st.session_state:
-        st.session_state.role_play_completed = False
-    if "response_pending" not in st.session_state:
-        st.session_state.response_pending = False
-    if "user_input" not in st.session_state:
-        st.session_state.user_input = ""
-    if "max_iterations" not in st.session_state:
-        st.session_state.max_iterations = 3
-    if "openai_model" not in st.session_state:
-        st.session_state["openai_model"] = "gpt-3.5-turbo"
-    if "user_data" not in st.session_state:
-        st.session_state.user_data = {
-            "name": "",
-            "gender": "",
-            "age": "",
-            "seniority": "",
-            "nationality": "",
-            "work_environment": "",
-            "department": ""
+def initialize_session_state():
+    if "dismisses_input_scenario" not in st.session_state:
+        st.session_state.dismisses_input_scenario = {
+            "messages": [],
+            "scenario_complete": False,
+            "therapist_rating": 0,
+            "waiting_for_employee": True,
+            "current_iteration": 0,
+            "max_iterations": 3,
+            "restart_key": 0,
+            "last_visit": None
         }
 
-    # Dropdown list for setting the maximum number of iterations
-    max_iterations = st.selectbox("Maximum number of iterations", list(range(1, 16)), index=st.session_state.max_iterations - 1, key="max_iterations")
+def generate_ai_message(role, employee_info, personality_traits, visible_messages):
+    cultural_context = get_cultural_context(employee_info['nationality'])
+    system_prompt = create_system_prompt(role, employee_info, personality_traits, cultural_context)
+    messages = [{"role": "system", "content": system_prompt}] + visible_messages
+    response = client.chat.completions.create(
+        model=used_model,
+        messages=messages
+    )
+    return response.choices[0].message.content
 
-    # Generate starting message if chat_history is empty
-    if not st.session_state.chat_history:
-        employee_name = st.session_state.user_data["name"]
-        gender = st.session_state.user_data["gender"]
-        age = st.session_state.user_data["age"]
-        seniority = st.session_state.user_data["seniority"]
-        nationality = st.session_state.user_data["nationality"]
-        work_environment = st.session_state.user_data["work_environment"]
-        department = st.session_state.user_data["department"]
-
-        starting_message_prompt = [
-            {"role": "system", "content": f"""You are Ahmad, an experienced coworker who often dismisses the contributions of {employee_name}. You're having a conversation because {employee_name} has told you that you dismiss their contributions and ignore their feedback. You're feeling defensive and angry about this accusation. You believe your experience makes your judgement superior.
+def create_system_prompt(role, employee_info, personality_traits, cultural_context):
+    if role == "coworker":
+        return f"""You are Ahmad, an experienced coworker who often dismisses your colleague's input and ignores their feedback. You believe you do a better job due to your experience. When confronted about your dismissive attitude, you become defensive and angry, denying any issues. Respond to your colleague's concerns while maintaining your dismissive and defensive attitude.
 
 Coworker Information:
-Name: {employee_name}
-Gender: {gender}
-Age: {age}
-Seniority: {seniority}
-Nationality: {nationality}
-Work Environment: {work_environment}
-Department: {department}
+{employee_info}
 
-Instructions:
-1. Start the conversation by acknowledging that {employee_name} has raised this issue with you.
-2. Express your initial defensiveness and denial of the accusation.
-3. Maintain a somewhat dismissive tone, reflecting your belief in your superior experience.
-4. Be open to discussion, but remain confident in your own abilities and judgement.
-5. Avoid outright aggression, but don't immediately accept fault or agree to change.
+Personality Traits:
+{personality_traits}
 
-Generate a starting message that addresses the issue {employee_name} has raised, expressing your initial reaction and willingness to discuss, while maintaining your stance."""},
-        ]
+Cultural Context:
+{cultural_context}
 
-        starting_message_completion = client.chat.completions.create(
-            messages=starting_message_prompt,
-            model=st.session_state["openai_model"],
-        )
+Your task is to respond to your coworker's concerns while maintaining your dismissive and defensive attitude. Don't easily acknowledge problems with your behavior, and be quick to defend your actions or deflect criticism.
+You handle one role (your role) and provide response once at a time."""
+    elif role == "therapist":
+        return f"""As a therapist, specializing in workplace conflict resolution, provide comprehensive feedback to {employee_info['name']} on their approach to addressing the conflict with their coworker. Consider their personality traits and cultural background:
 
-        starting_message = starting_message_completion.choices[0].message.content
+Personality Traits: {personality_traits} Cultural Context: {cultural_context}
 
-        st.session_state.chat_history.append({"role": "assistant", "content": starting_message})
+The response should not resemble an email or contain any sign-offs, or closing phrases. Instead, it should feel like a personalized discussion. Address {employee_info['name']} directly using 'you' and 'your' to create a personalized connection.
+Offer constructive feedback for improving conflict resolution techniques, considering their personality and cultural nuances.
 
-    # Display chat history
-    chat_container = st.container()
-    with chat_container:
-        for i, message in enumerate(st.session_state.chat_history):
-            if message["role"] == "user":
-                st.markdown(f'<div style="background-color: #E6E6FA; padding: 10px; border-radius: 5px; margin-bottom: 10px;"><strong>{st.session_state.user_data["name"]}:</strong> {message["content"]}</div>', unsafe_allow_html=True)
-            elif message["role"] == "therapist":
-                st.markdown(f'<div style="background-color: #7FFF00; padding: 10px; border-radius: 5px; margin-bottom: 10px;"><strong>Therapist:</strong> {message["content"]}</div>', unsafe_allow_html=True)
-            else:
-                st.markdown(f'<div style="background-color: #F0F8FF; padding: 10px; border-radius: 5px; margin-bottom: 10px;"><strong>Ahmad (Coworker):</strong> {message["content"]}</div>', unsafe_allow_html=True)
+Provide insights on effective conflict resolution strategies, emphasizing:
 
-    # User input form
-    if not st.session_state.role_play_completed:
-        with st.form(key="user_input_form", clear_on_submit=True):
-            user_input = st.text_input(f"{st.session_state.user_data['name']}:", disabled=st.session_state.response_pending)
-            submit_button = st.form_submit_button("Submit")
+1. The importance of assertive communication without becoming aggressive
+2. Techniques for dealing with dismissive or defensive colleagues
+3. The balance between standing your ground and finding collaborative solutions
+4. The role of emotional intelligence in managing workplace conflicts
+5. Strategies for de-escalating tense conversations
+6. The importance of documenting incidents and knowing when to involve higher management or HR
+7. How to maintain professionalism even when faced with difficult personalities
 
-            if submit_button and user_input and not st.session_state.response_pending:
-                st.session_state.response_pending = True
-                st.session_state.chat_history.append({"role": "user", "content": user_input})
-                st.session_state.iteration_count += 1
+Analyze the final response, and based on the outcome, offer tailored guidance:
+ACCEPT: If the employee accepted what the coworker said, explain the importance of sometimes standing for your point and defending it. Provide strategies for conflict resolution while maintaining positive work relationships.
+INAPPROPRIATE: If the response was unprofessional or rude, address the behavior diplomatically. Offer alternatives for expressing dissatisfaction while maintaining professionalism.
+EXTREMELY_INAPPROPRIATE: If the response contained offensive or threatening language, caution against such behavior. Explain the consequences and suggest healthier ways to handle frustration and pressure.
+EXPLAIN: If the employee politely declined and explains why he/she insists the coworker dissmisses their work, praise their ability to clearly stand with his/her point of view. Offer refinements if needed, and acknowledge their professionalism in offering alternatives.
+ESCALATE: If the employee escalates the issue and firmly states that the coworker is consistently dissmisses their work  
+UNCLEAR: If the response was vague or ambiguous, emphasize the need for clear communication.
 
-                # Display "Generating response..." message
-                generating_message = st.empty()
-                generating_message.markdown('<div style="color: gray;">Ahmad is responding...</div>', unsafe_allow_html=True)
+Conclude the assessment with a rating out of 5 stars, formatted as [RATING: X], based on their conflict resolution and communication skills, according to the following:
+ACCEPT: 2-3 stars. 
+INAPPROPRIATE: 0-1 stars. 
+EXTREMELY_INAPPROPRIATE: 0 stars. 
+EXPLAIN: 1-5 stars.
+ESCALATE: 2-4 stars.
+UNCLEAR: 0-2 stars."""
 
-                # Generate chat completion
-                chat_history = [
-                    {"role": "system", "content": f"""You are Ahmad, an experienced coworker who often dismisses the contributions of {st.session_state.user_data["name"]}. You're having a conversation because {st.session_state.user_data["name"]} has told you that you dismiss their contributions and ignore their feedback. You're feeling defensive and angry about this accusation. You believe your experience makes your judgement superior.
+def analyze_employee_response(response):
+    prompt = f"""Analyze the employee's response in the context of conflict resolution:
+Categorize the response as:
+1. ACCEPT: Explicitly accepting what your coworker claimed
+2. INAPPROPRIATE: Rude, unprofessional, or too inappropriate to continue
+3. EXTREMELY_INAPPROPRIATE: Offensive language, threats, or warrant immediate action
+4. EXPLAIN: If the employee politely declined and explains why he/she insists the coworker dissmisses their work
+5. ESCALATE: If the employee escalates the issue and firmly states that the coworker is consistently dissmisses their work 
+5. UNCLEAR: Unclear or ambiguous response
 
-Coworker Information:
-Name: {st.session_state.user_data["name"]}
-Gender: {st.session_state.user_data["gender"]}
-Age: {st.session_state.user_data["age"]}
-Seniority: {st.session_state.user_data["seniority"]}
-Nationality: {st.session_state.user_data["nationality"]}
-Work Environment: {st.session_state.user_data["work_environment"]}
-Department: {st.session_state.user_data["department"]}
+Employee's response: "{response}"
 
-Instructions:
-1. Maintain a somewhat dismissive tone throughout the conversation, reflecting your belief in your superior experience.
-2. Be open to discussion, but remain confident in your own abilities and judgement.
-3. If challenged, become slightly defensive, but avoid outright aggression.
-4. Try to understand your coworker's perspective, but don't immediately accept fault or agree to change.
-5. If your coworker provides specific examples, consider them but explain why you think your approach was better.
-6. If the conversation becomes heated, express concern about the tone while maintaining your position.
+Categorize as ACCEPT, INAPPROPRIATE, EXTREMELY_INAPPROPRIATE, EXPLAIN, ESCALATE, or UNCLEAR.
+Briefly explain why, considering their personality traits:"""
+    
+    analysis = client.chat.completions.create(
+        model=used_model,
+        messages=[{"role": "user", "content": prompt}]
+    )
+    return analysis.choices[0].message.content
 
-Remember, you believe your experience gives you better judgement, but you're willing to have a discussion about the working relationship with your coworker."""},
-                ] + st.session_state.chat_history
+def format_therapist_feedback(feedback):    
+    styled_feedback = f"""
+    <div style="background-color: #e6f3ff; padding: 10px; border-radius: 5px; border-left: 5px solid #3399ff;">
+        <p style="color: #0066cc; font-weight: bold;">Therapist Feedback:</p>
+        <p style="color: #333333;">{feedback}</p>
+    </div>
+    """
+    return styled_feedback
 
-                chat_completion = client.chat.completions.create(
-                    messages=chat_history,
-                    model=st.session_state["openai_model"],
-                )
+def chat():
+    st.title("Conflict Resolution: Your coworker regularly dismisses your input at work")
+    initialize_session_state()
+    scenario = st.session_state.dismisses_input_scenario
 
-                # Get assistant's reply
-                assistant_reply = chat_completion.choices[0].message.content
+    # Ensure user has completed the profile setup
+    if not st.session_state.get("user_data") or not st.session_state.get("personality_traits"):
+        st.error("Please complete your profile setup on the Home page before starting this scenario.")
+        return
 
-                # Check if the conversation should end
-                conversation_status_prompt = [
-                    {"role": "system", "content": f"""Analyze the conversation between Ahmad and the coworker. Determine the appropriate action:
-                    1. If insults are used or the conversation has escalated to an unprofessional level, respond with 'TERMINATE: [Brief explanation]'.
-                    2. If the conversation is becoming tense or unproductive, but hasn't reached the point of insults, respond with 'WARNING: [Brief explanation]'.
-                    3. If the conversation is ongoing and productive, respond with 'CONTINUE'.
-
-                    The role-play should continue unless there are insults or the conversation has escalated beyond a professional level.
-
-                    Coworker Information:
-                    Name: {st.session_state.user_data["name"]}
-                    Gender: {st.session_state.user_data["gender"]}
-                    Age: {st.session_state.user_data["age"]}
-                    Seniority: {st.session_state.user_data["seniority"]}
-                    Nationality: {st.session_state.user_data["nationality"]}
-                    Work Environment: {st.session_state.user_data["work_environment"]}
-                    Department: {st.session_state.user_data["department"]}
-                    """},
-                    {"role": "user", "content": "Here is the conversation history:\n" + "\n".join([f"{message['role']}: {message['content']}" for message in st.session_state.chat_history])},
-                ]
-
-                conversation_status_completion = client.chat.completions.create(
-                    messages=conversation_status_prompt,
-                    model=st.session_state["openai_model"],
-                )
-
-                conversation_status = conversation_status_completion.choices[0].message.content.strip()
-
-                if conversation_status.startswith("TERMINATE"):
-                    st.session_state.role_play_completed = True
-                
-                st.session_state.chat_history.append({"role": "assistant", "content": assistant_reply})
-
-                if st.session_state.iteration_count >= st.session_state.max_iterations:
-                    st.session_state.role_play_completed = True
-
-                if st.session_state.role_play_completed:
-                    # Generate therapist's feedback using the API
-                    therapist_feedback_prompt = [
-                        {"role": "system", "content": f"""You are a therapist providing feedback on the coworker's responses during the role-play with Ahmad. Analyze the conversation history and provide specific, context-aware advice based on the coworker's behavior and responses. Consider factors such as the coworker's ability to communicate effectively, handle difficult situations, and address workplace conflicts. Provide actionable guidance on how the coworker can improve their communication and assertiveness skills while maintaining professionalism.
-
-                        Coworker Information:
-                        Name: {st.session_state.user_data["name"]}
-                        Gender: {st.session_state.user_data["gender"]}
-                        Age: {st.session_state.user_data["age"]}
-                        Seniority: {st.session_state.user_data["seniority"]}
-                        Nationality: {st.session_state.user_data["nationality"]}
-                        Work Environment: {st.session_state.user_data["work_environment"]}
-                        Department: {st.session_state.user_data["department"]}
-                        """},
-                        {"role": "user", "content": "Here is the conversation history:\n" + "\n".join([f"{message['role']}: {message['content']}" for message in st.session_state.chat_history])},
-                    ]
-
-                    therapist_feedback_completion = client.chat.completions.create(
-                        messages=therapist_feedback_prompt,
-                        model=st.session_state["openai_model"],
-                    )
-
-                    therapist_feedback = therapist_feedback_completion.choices[0].message.content
-
-                    # Provide therapist's feedback
-                    st.session_state.chat_history.append({"role": "therapist", "content": therapist_feedback})
-
-                # Remove the "Generating response..." message
-                generating_message.empty()
-                st.session_state.response_pending = False
-
-                # Rerun the Streamlit app to update the chat history and clear the user input
-                st.rerun()
-
-    # Restart button
-    if st.button("Restart"):
-        # Generate a variation of the starting message from Ahmad using the API
-        starting_message_prompt = [
-            {"role": "system", "content": f"""You are Ahmad, an experienced coworker who often dismisses the contributions of {st.session_state.user_data["name"]}. You're having a conversation because {st.session_state.user_data["name"]} has told you that you dismiss their contributions and ignore their feedback. You're feeling defensive and angry about this accusation. You believe your experience makes your judgement superior.
-
-Coworker Information:
-Name: {st.session_state.user_data["name"]}
-Gender: {st.session_state.user_data["gender"]}
-Age: {st.session_state.user_data["age"]}
-Seniority: {st.session_state.user_data["seniority"]}
-Nationality: {st.session_state.user_data["nationality"]}
-Work Environment: {st.session_state.user_data["work_environment"]}
-Department: {st.session_state.user_data["department"]}
-
-Instructions:
-1. Start the conversation by acknowledging that {st.session_state.user_data["name"]} has raised this issue with you.
-2. Express your initial defensiveness and denial of the accusation.
-3. Maintain a somewhat dismissive tone, reflecting your belief in your superior experience.
-4. Be open to discussion, but remain confident in your own abilities and judgement.
-5. Avoid outright aggression, but don't immediately accept fault or agree to change.
-
-Generate a starting message that addresses the issue {st.session_state.user_data["name"]} has raised, expressing your initial reaction and willingness to discuss, while maintaining your stance."""},
-        ]
-
-        starting_message_completion = client.chat.completions.create(
-            messages=starting_message_prompt,
-            model=st.session_state["openai_model"],
-        )
-
-        starting_message = starting_message_completion.choices[0].message.content
-
-        st.session_state.chat_history = [{"role": "assistant", "content": starting_message}]
-        st.session_state.iteration_count = 0
-        st.session_state.role_play_completed = False
-        st.session_state.response_pending = False
-        st.session_state.user_input = ""
+    # Restart button at the top of the chat interface
+    if st.button("Restart Scenario", key=f"dismisses_input_restart_button_{scenario['restart_key']}"):
+        scenario["messages"] = []
+        scenario["scenario_complete"] = False
+        scenario["therapist_rating"] = 0
+        scenario["waiting_for_employee"] = True
+        scenario["current_iteration"] = 0
+        scenario["restart_key"] += 1
         st.rerun()
 
+    current_time = st.session_state.get("current_time", 0)
+    if scenario["last_visit"] != current_time:
+        scenario["messages"] = []
+        scenario["scenario_complete"] = False
+        scenario["therapist_rating"] = 0
+        scenario["waiting_for_employee"] = True
+        scenario["current_iteration"] = 0
+        scenario["restart_key"] += 1
+        scenario["last_visit"] = current_time
+
+    scenario["max_iterations"] = st.slider(
+        "Select the maximum number of conversation rounds:",
+        min_value=3,
+        max_value=10,
+        value=5,
+        key=f"dismisses_input_iteration_slider_{scenario['restart_key']}"
+    )
+
+    initial_prompt = "You decide to approach Ahmad about his habit of dismissing your input and ignoring your feedback on work projects. You're aware that Ahmad is more experienced, but you believe your contributions are valuable. Start the conversation by addressing this issue professionally, despite knowing that Ahmad might become defensive or angry."
+    st.markdown(f"**Scenario:** {initial_prompt}")
+
+    if not scenario["messages"]:
+        with st.spinner("Ahmed is starting the conversation..."):
+            initial_message = generate_ai_message("coworker", st.session_state.user_data, st.session_state.personality_traits, [])
+            scenario["messages"].append({"role": "assistant", "content": initial_message})
+            scenario["waiting_for_employee"] = True
+        st.rerun()
+
+    progress = min(scenario['current_iteration'] + 1, scenario['max_iterations']) / scenario['max_iterations']
+    st.progress(progress, text=f"Round {min(scenario['current_iteration'] + 1, scenario['max_iterations'])}/{scenario['max_iterations']}")
+
+    for message in scenario["messages"]:
+        if message["role"] == "assistant" and message["content"].startswith("Therapist:"):
+            st.markdown(format_therapist_feedback(message["content"][10:]), unsafe_allow_html=True)
+        elif message["role"] != "system":
+            with st.chat_message(message["role"]):
+                st.markdown(message["content"])
+
+    if not scenario["scenario_complete"]:
+        if scenario["waiting_for_employee"]:
+            prompt = st.chat_input("Your response:", key=f"dismisses_input_user_input_{scenario['restart_key']}")
+            if prompt:
+                scenario["messages"].append({"role": "user", "content": prompt})
+                scenario["waiting_for_employee"] = False
+                scenario["current_iteration"] += 1
+                st.rerun()
+
+        if not scenario["waiting_for_employee"]:
+            with st.spinner("Analyzing response and generating reply..."):
+                analysis = analyze_employee_response(scenario["messages"][-1]["content"])
+                
+                if "EXTREMELY_INAPPROPRIATE" in analysis:
+                    scenario["scenario_complete"] = True
+                    feedback = generate_ai_message("therapist", st.session_state.user_data, st.session_state.personality_traits, scenario["messages"])
+                    scenario["therapist_rating"] = 0
+                    scenario["messages"].append({"role": "assistant", "content": f"Therapist: {feedback}"})
+                elif "ACCEPT" in analysis  or "ESCALATE" in analysis or "INAPPROPRIATE" in analysis or scenario["current_iteration"] >= scenario["max_iterations"]:
+                    scenario["scenario_complete"] = True
+                
+                if not scenario["scenario_complete"]:
+                    coworker_response = generate_ai_message("coworker", st.session_state.user_data, st.session_state.personality_traits, scenario["messages"])
+                    scenario["messages"].append({"role": "assistant", "content": coworker_response})
+                elif "EXTREMELY_INAPPROPRIATE" not in analysis:
+                    feedback = generate_ai_message("therapist", st.session_state.user_data, st.session_state.personality_traits, scenario["messages"])
+                    scenario["messages"].append({"role": "assistant", "content": f"Therapist: {feedback}"})
+                
+                scenario["waiting_for_employee"] = True
+                st.rerun()
 
 def main():
-    st.markdown("Learning to Communicate Effectively Role-Play, Level 2 Scenario: Your coworker regularly dismisses your input")
-    # Initialize session state for user data
-    if "user_data" not in st.session_state:
-        st.session_state.user_data = {
-            "name": "",
-            "gender": "",
-            "age": "",
-            "seniority": "",
-            "nationality": "",
-            "work_environment": "",
-            "department": ""
-        }
-
-    # Check if the name is 'Alex' or 'Sandra'
-    employee_name = st.session_state.user_data["name"].strip().lower()
-    if employee_name in ['alex', 'sandra']:
-        chat()
-    else:
-        st.write(f"Welcome {st.session_state.user_data['name']}, enjoy your visit!")
+    chat()
 
 if __name__ == "__main__":
     main()
