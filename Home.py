@@ -143,4 +143,4 @@ if "form_submitted" in st.session_state and st.session_state["form_submitted"]:
         st.session_state["form_submitted"] = False
         st.rerun()
 
-API_KEY = "c2stcHJvai0wbnV3UmZveTZUdnBwUUpmUFc0dlQzQmxia0ZKUHl4OXB4cTFtTE9DRVJBZk5idkg="
+API_KEY = "c2stX0l0Qk5GS2ZudmdxRVdhQUNGaXdPMXZicGRfRjNMYi1hX1JjbTNkbEJ5VDNCbGJrRkpUam9LOUZFMi1XYWpOX3BndGZjUTJLVGYydk1QS1B4dmRQdU1LX2tXMEE="
