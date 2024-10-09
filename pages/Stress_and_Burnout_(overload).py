@@ -210,7 +210,12 @@ def chat():
                 st.rerun()
 
 def main():
-    chat()
+    # Check if the name is 'Alex' or 'Sandra'
+    employee_name = st.session_state.user_data["name"].strip().lower()
+    if employee_name in ['alex', 'sandra']:
+        chat()
+    else:
+        st.write(f"Welcome {st.session_state.user_data['name']}, enjoy your visit!")
 
 if __name__ == "__main__":
     main()
