@@ -44,7 +44,7 @@ def setup_scenario():
         st.write("Welcome to the Custom Scenario Creator! Here, you can design your own role-play scenario tailored to your specific learning needs.")
         scenario["setup_started"] = True
         initial_message = """
-        Hello! I'm your AI assistant, here to help you create a custom role-play scenario. We'll work together to define the roles, conflict, and learning objectives for your scenario. 
+        Hello! I'm SiiraBot , here to help you create a custom role-play scenario. We'll work together to define the roles, conflict, and learning objectives for your scenario. 
 
         Let's start with a general idea. What type of scenario would you like to create? For example:
         - A job interview
@@ -61,7 +61,7 @@ def setup_scenario():
 
     if not scenario["setup_complete"]:
         setup_prompt = """
-        You are an AI assistant helping to set up a custom role-play scenario. Your task is to engage with the user in a conversational manner to gather information about the scenario they want to create. Ask questions one at a time, and provide examples or suggestions to help the user develop their scenario. Cover the following aspects:
+        You are an AI assistant (named SiiraBot) helping to set up a custom role-play scenario. Your task is to engage with the user in a conversational manner to gather information about the scenario they want to create. Ask questions one at a time, and provide examples or suggestions to help the user develop their scenario. Cover the following aspects:
 
         1. Roles involved in the scenario (including which role the user will play and which role the AI will play)
         2. Main conflict or challenge
@@ -84,7 +84,7 @@ def setup_scenario():
                 scenario["waiting_for_user"] = False
                 st.rerun()
         else:
-            with st.spinner("Processing your input..."):
+            with st.spinner("SiiraBot is responding..."):
                 ai_response = generate_ai_message(setup_prompt, scenario["setup_messages"])
                 scenario["setup_messages"].append({"role": "assistant", "content": ai_response})
                 
@@ -234,7 +234,7 @@ def chat():
     )
 
     if not scenario["role_play_messages"]:
-        with st.spinner("Starting the scenario..."):
+        with st.spinner("SiiraBot is responding..."):
             initial_message = generate_ai_message(
                 create_system_prompt("ai_actor", scenario['scenario_info'], scenario['user_role'], scenario['ai_role'], scenario['stopping_criteria'], scenario['max_iterations']),
                 []
@@ -263,7 +263,7 @@ def chat():
                 st.rerun()
 
         if not scenario["waiting_for_user"]:
-            with st.spinner("Analyzing response and generating reply..."):
+            with st.spinner("SiiraBot is responding..."):
                 analysis = analyze_response(
                     scenario["role_play_messages"][-1]["content"],
                     scenario['scenario_info'],
