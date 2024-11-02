@@ -50,7 +50,9 @@ Cultural Context:
 Your task is to pressure the employee to work on their days off, without turning the message into a formal communication. Maintain an extremely aggressive and results-oriented approach, showing little regard for the employee's personal life or cultural considerations. Use manipulation, guilt-tripping, and aggressive language to achieve your goal while ensuring the interaction remains direct and impactful.
 You handle one role (your role) and provide response once at a time."""
     elif role == "therapist":
-        return f"""As a therapist, provide a detailed and personalized assessment of {employee_info['name']}’s communication and boundary-setting skills based on the following conversation. Take into account their personality traits and cultural background:
+        return f"""As a therapist, provide a detailed and personalized assessment of {employee_info['name']}’s communication and boundary-setting skills based on the following conversation. 
+        Use simple and clear language, avoiding any medical terminology or jargon that may be ambiguous.
+        Take into account their personality traits and cultural background:
 
 Personality Traits: {personality_traits} Cultural Context: {cultural_context}
 

@@ -50,7 +50,9 @@ Cultural Context:
 Your task is to respond to your colleague's concerns while maintaining your aggressive and credit-taking behavior. Don't easily admit to wrongdoing, and be quick to defend your actions or deflect criticism. You may use manipulation tactics or try to make your colleague doubt their own contributions.
 You handle one role (your role) and provide response once at a time."""
     elif role == "therapist":
-        return f"""As a therapist, specializing in workplace conflict resolution, provide comprehensive feedback to {employee_info['name']} on their approach to addressing the conflict with their coworker who is taking credit for their work. Consider their personality traits and cultural background:
+        return f"""As a therapist, specializing in workplace conflict resolution, provide comprehensive feedback to {employee_info['name']} on their approach to addressing the conflict with their coworker who is taking credit for their work. 
+        Use simple and clear language, avoiding any medical terminology or jargon that may be ambiguous.
+        Consider their personality traits and cultural background:
 
 Personality Traits: {personality_traits} Cultural Context: {cultural_context}
 

@@ -35,7 +35,7 @@ def generate_ai_message(role, employee_info, personality_traits, visible_message
     return response.choices[0].message.content
 
 def create_system_prompt(role, employee_info, personality_traits, cultural_context):
-    if role == "coworker":
+    if role == "manager":
         return f"""You are Ahmad, a team member who has been consistently missing deadlines and asking for extensions. Your manager has initiated a conversation to address this issue. Respond to your manager's concerns while showing some awareness of the problem but also some reluctance to fully admit fault or make immediate changes.
 
 Respond to your manager's concerns informally, showing signs of bad time management and overwhelm in a conversational tone. Avoid any formal greetings, sign-offs, or closing phrases. 
@@ -54,6 +54,7 @@ Your task is to respond to your manager's concerns about your missed deadlines. 
 You handle one role (your role) and provide response once at a time."""
     elif role == "therapist":
         return f"""You are a therapist specializing in workplace stress management, provide feedback to {employee_info['name']} on their approach to helping a team member (Nabeel) deal with stress and work overload.
+        Use simple and clear language, avoiding any medical terminology or jargon that may be ambiguous.
 The response should not contain any sign-offs, or regards. 
 Address {employee_info['name']} directly using 'you' and 'your' to create a personalized connection.
 
@@ -166,7 +167,7 @@ def chat():
 
     if not scenario["messages"]:
         with st.spinner("Ahmed is starting the conversation..."):
-            initial_message = generate_ai_message("coworker", st.session_state.user_data, st.session_state.personality_traits, [])
+            initial_message = generate_ai_message("manager", st.session_state.user_data, st.session_state.personality_traits, [])
             scenario["messages"].append({"role": "assistant", "content": initial_message})
             scenario["waiting_for_manager"] = True
         st.rerun()

@@ -50,7 +50,9 @@ Cultural Context:
 Your task is to respond to the employee's concerns while maintaining your free-spirited and disorganized approach. Don't easily acknowledge problems with your management style, but also avoid being overtly rude or dismissive.
 You handle one role (your role) and provide response once at a time."""
     elif role == "therapist":
-        return f"""As a therapist, specializing in workplace conflict resolution, provide comprehensive feedback to {employee_info['name']} on their approach to addressing the conflict with their disorganized manager. Consider their personality traits and cultural background:
+        return f"""As a therapist, specializing in workplace conflict resolution, provide comprehensive feedback to {employee_info['name']} on their approach to addressing the conflict with their disorganized manager. 
+        Use simple and clear language, avoiding any medical terminology or jargon that may be ambiguous.
+        Consider their personality traits and cultural background:
 
 Personality Traits: {personality_traits} Cultural Context: {cultural_context}
 

@@ -50,7 +50,8 @@ Cultural Context:
 Your task is to respond to your team member's concerns about your procrastination. Be defensive, make excuses, and resist acknowledging the problem. Only very gradually, if at all, show any openness to their suggestions.
 You handle one role (your role) and provide response once at a time."""
     elif role == "therapist":
-        return f"""As a therapist, specializing in time and procrastination management, provide comprehensive feedback to {employee_info['name']} on their approach to addressing a colleague's procrastination issues. Consider their personality traits and cultural background:
+        return f"""As a therapist, specializing in time and procrastination management, provide comprehensive feedback to {employee_info['name']} on their approach to addressing a colleague's procrastination issues. Use simple and clear language, avoiding any medical terminology or jargon that may be ambiguous.
+        Consider their personality traits and cultural background:
 
 Personality Traits: {personality_traits} Cultural Context: {cultural_context}
 

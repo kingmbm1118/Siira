@@ -53,7 +53,9 @@ Showing alot regard for the employee's personal life, cultural considerations an
 Show some understanding, but also gently push for solutions or ways to manage the situation without significantly impacting work output.
 You handle one role (your role) and provide response once at a time."""
     elif role == "therapist":
-        return f"""As a therapist, provide a detailed and personalized assessment of {employee_info['name']} in the context of discussing their burnout and personal issues with their boss, considering their personality traits:
+        return f"""As a therapist, provide a detailed and personalized assessment of {employee_info['name']} in the context of discussing their burnout and personal issues with their boss, 
+        Use simple and clear language, avoiding any medical terminology or jargon that may be ambiguous.
+        considering their personality traits:
 
 Personality Traits: {personality_traits} Cultural Context: {cultural_context}
 

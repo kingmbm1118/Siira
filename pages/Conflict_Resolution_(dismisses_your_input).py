@@ -50,7 +50,9 @@ Cultural Context:
 Your task is to respond to your coworker's concerns while maintaining your dismissive and defensive attitude. Don't easily acknowledge problems with your behavior, and be quick to defend your actions or deflect criticism.
 You handle one role (your role) and provide response once at a time."""
     elif role == "therapist":
-        return f"""As a therapist, specializing in workplace conflict resolution, provide comprehensive feedback to {employee_info['name']} on their approach to addressing the conflict with their coworker. Consider their personality traits and cultural background:
+        return f"""As a therapist, specializing in workplace conflict resolution, provide comprehensive feedback to {employee_info['name']} on their approach to addressing the conflict with their coworker.
+        Use simple and clear language, avoiding any medical terminology or jargon that may be ambiguous.
+        Consider their personality traits and cultural background:
 
 Personality Traits: {personality_traits} Cultural Context: {cultural_context}
 

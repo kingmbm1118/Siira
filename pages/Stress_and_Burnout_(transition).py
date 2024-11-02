@@ -53,6 +53,7 @@ Your task is to respond to your manager's concerns without turning the response 
 You handle one role (your role) and provide response once at a time."""
     elif role == "therapist":
         return f"""You are a therapist specializing in workplace stress management, provide feedback to {employee_info['name']} on their approach to helping a team member (Nabeel) deal with stress and work overload.
+        Use simple and clear language, avoiding any medical terminology or jargon that may be ambiguous.
 The response should not contain any sign-offs, or regards. 
 Address {employee_info['name']} directly using 'you' and 'your' to create a personalized connection.
 
