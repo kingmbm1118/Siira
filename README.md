@@ -35,3 +35,36 @@ Siira is an innovative Soft Skills Training Simulator designed to enhance workpl
 - AI-generated therapist feedback
 
 Siira provides a cutting-edge solution for organizations looking to develop and enhance their employees' soft skills in an engaging, effective, and scalable manner.
+
+
+## Installation Steps
+### Prerequisites
+* Python 3.8+
+* Git
+* pip
+### 1. Clone Repository
+```bash
+git clone https://github.com/kingmbm1118/Siira
+cd siira
+```
+### 2. Create Virtual Environment
+```bash
+python -m venv venv
+```
+### 3. Activate Virtual Environment
+Windows:
+```bash
+venv\Scripts\activate
+```
+Mac/Linux:
+```bash
+source venv/bin/activate
+```
+### 4. Install Requirements
+```bash
+pip install -r requirements.txt
+```
+### 5. Run Application
+```bash
+streamlit run Home.py
+```
