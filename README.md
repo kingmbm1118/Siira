@@ -36,7 +36,6 @@ Siira is an innovative Soft Skills Training Simulator designed to enhance workpl
 
 Siira provides a cutting-edge solution for organizations looking to develop and enhance their employees' soft skills in an engaging, effective, and scalable manner.
 
-
 ## Installation Steps
 ### Prerequisites
 * Python 3.8+
