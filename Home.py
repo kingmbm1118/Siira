@@ -6,7 +6,7 @@ from storage_manager import save_to_storage, load_from_storage, clear_storage  #
 
 # Set page configuration (must be the first Streamlit command)
 st.set_page_config(
-    page_title="Chat with Professional",
+    page_title="Chat with Professional, Siira :)",
     page_icon="siira.jpg",
     layout="wide"
 )
